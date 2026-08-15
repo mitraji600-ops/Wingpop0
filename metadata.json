@@ -1,0 +1,6 @@
+{
+  "name": "Social Media ImageKit App",
+  "description": "A social media website with dark mode, ImageKit integration, and Firestore persistence.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

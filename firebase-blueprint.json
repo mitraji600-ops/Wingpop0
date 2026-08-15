@@ -1,0 +1,148 @@
+{
+  "collections": [
+    {
+      "name": "users",
+      "description": "Stores user profiles and account metadata.",
+      "fields": {
+        "uid": { "type": "string" },
+        "username": { "type": "string" },
+        "displayName": { "type": "string" },
+        "bio": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "theme": { "type": "string" },
+        "accountStatus": { "type": "string" },
+        "createdAt": { "type": "timestamp" },
+        "updatedAt": { "type": "timestamp" }
+      },
+      "subcollections": [
+        {
+          "name": "saved_posts",
+          "description": "References to posts saved by the user.",
+          "fields": { "savedAt": { "type": "timestamp" } }
+        },
+        {
+          "name": "saved_reels",
+          "description": "References to reels saved by the user.",
+          "fields": { "savedAt": { "type": "timestamp" } }
+        },
+        {
+          "name": "notifications",
+          "description": "Notifications for the user.",
+          "fields": {
+            "type": { "type": "string" },
+            "actorId": { "type": "string" },
+            "targetId": { "type": "string" },
+            "read": { "type": "boolean" },
+            "createdAt": { "type": "timestamp" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "usernames",
+      "description": "Registry for checking username uniqueness.",
+      "fields": {
+        "uid": { "type": "string" }
+      }
+    },
+    {
+      "name": "posts",
+      "description": "Top-level posts collection. Does NOT embed media files.",
+      "fields": {
+        "authorId": { "type": "string" },
+        "caption": { "type": "string" },
+        "visibility": { "type": "string" },
+        "allowDownloads": { "type": "boolean" },
+        "status": { "type": "string" },
+        "mediaCount": { "type": "number" },
+        "createdAt": { "type": "timestamp" },
+        "updatedAt": { "type": "timestamp" }
+      },
+      "subcollections": [
+        {
+          "name": "media",
+          "description": "Metadata for ImageKit media attached to the post.",
+          "fields": {
+            "imageKitFileId": { "type": "string" },
+            "imageKitPath": { "type": "string" },
+            "url": { "type": "string" },
+            "thumbnailUrl": { "type": "string" },
+            "mimeType": { "type": "string" },
+            "width": { "type": "number" },
+            "height": { "type": "number" },
+            "fileSize": { "type": "number" },
+            "order": { "type": "number" },
+            "createdAt": { "type": "timestamp" }
+          }
+        },
+        {
+          "name": "comments",
+          "description": "Comments on the post.",
+          "fields": {
+            "authorId": { "type": "string" },
+            "content": { "type": "string" },
+            "status": { "type": "string" },
+            "createdAt": { "type": "timestamp" }
+          }
+        },
+        {
+          "name": "likes",
+          "description": "Likes on the post. Document ID is the user's UID to prevent duplicates.",
+          "fields": { "likedAt": { "type": "timestamp" } }
+        }
+      ]
+    },
+    {
+      "name": "reels",
+      "description": "Top-level reels collection. References ImageKit videos.",
+      "fields": {
+        "authorId": { "type": "string" },
+        "imageKitFileId": { "type": "string" },
+        "videoUrl": { "type": "string" },
+        "thumbnailUrl": { "type": "string" },
+        "duration": { "type": "number" },
+        "caption": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "timestamp" }
+      },
+      "subcollections": [
+        {
+          "name": "comments",
+          "description": "Comments on the reel.",
+          "fields": {
+            "authorId": { "type": "string" },
+            "content": { "type": "string" },
+            "status": { "type": "string" },
+            "createdAt": { "type": "timestamp" }
+          }
+        },
+        {
+          "name": "likes",
+          "description": "Likes on the reel. Document ID is the user's UID.",
+          "fields": { "likedAt": { "type": "timestamp" } }
+        }
+      ]
+    },
+    {
+      "name": "follows",
+      "description": "Follow graph. Document ID is {followerId}_{followingId}.",
+      "fields": {
+        "followerId": { "type": "string" },
+        "followingId": { "type": "string" },
+        "createdAt": { "type": "timestamp" }
+      }
+    },
+    {
+      "name": "reports",
+      "description": "User submitted content moderation reports.",
+      "fields": {
+        "reporterId": { "type": "string" },
+        "targetId": { "type": "string" },
+        "targetType": { "type": "string" },
+        "reason": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "timestamp" }
+      }
+    }
+  ]
+}

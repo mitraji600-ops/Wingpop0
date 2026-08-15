@@ -1,0 +1,121 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // --- HELPER FUNCTIONS ---
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+    
+    function isValidReelDuration() {
+      // Must exist and be <= 60 seconds.
+      return request.resource.data.duration <= 60;
+    }
+
+    // --- USERS ---
+    match /users/{userId} {
+      allow read: if true;
+      allow create, update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+      
+      // Saves Subcollections
+      match /saved_posts/{postId} {
+        allow read, write: if isOwner(userId);
+      }
+      match /saved_reels/{reelId} {
+        allow read, write: if isOwner(userId);
+      }
+      
+      // Notifications Subcollection
+      match /notifications/{notificationId} {
+        allow read: if isOwner(userId);
+        // Allows any authenticated user to create a notification (e.g. they liked a post)
+        // In a strictly secure app, Cloud Functions usually write these. 
+        allow create: if isAuthenticated() && request.resource.data.actorId == request.auth.uid; 
+        allow update, delete: if isOwner(userId);
+      }
+    }
+
+    // --- USERNAMES (Registry) ---
+    match /usernames/{username} {
+      allow read: if true;
+      // You can only register a username if the mapped UID is your UID
+      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+      // You can only delete it if it belongs to you
+      allow delete: if isAuthenticated() && resource.data.uid == request.auth.uid;
+    }
+
+    // --- POSTS ---
+    match /posts/{postId} {
+      allow read: if true;
+      // Creation MUST go through the Next.js secure API to verify ImageKit files
+      allow create: if false;
+      allow update, delete: if isAuthenticated() && resource.data.authorId == request.auth.uid;
+
+      // Post Media Subcollection
+      match /media/{mediaId} {
+        allow read: if true;
+        // Verify the parent post belongs to the user attempting the write
+        allow create, update, delete: if isAuthenticated() 
+          && get(/databases/$(database)/documents/posts/$(postId)).data.authorId == request.auth.uid;
+      }
+      
+      // Post Comments Subcollection
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if isAuthenticated() && request.resource.data.authorId == request.auth.uid;
+        allow update, delete: if isAuthenticated() && resource.data.authorId == request.auth.uid;
+      }
+      
+      // Post Likes Subcollection
+      match /likes/{userId} {
+        allow read: if true;
+        // The document ID is the userId, so isOwner(userId) ensures only you can like/unlike for yourself.
+        allow create, delete: if isOwner(userId);
+      }
+    }
+
+    // --- REELS ---
+    match /reels/{reelId} {
+      allow read: if true;
+      // Creation MUST go through the Next.js secure API to verify ImageKit video duration
+      allow create: if false;
+      allow update, delete: if isAuthenticated() && resource.data.authorId == request.auth.uid;
+      
+      // Reel Comments Subcollection
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if isAuthenticated() && request.resource.data.authorId == request.auth.uid;
+        allow update, delete: if isAuthenticated() && resource.data.authorId == request.auth.uid;
+      }
+      
+      // Reel Likes Subcollection
+      match /likes/{userId} {
+        allow read: if true;
+        allow create, delete: if isOwner(userId);
+      }
+    }
+
+    // --- FOLLOWS ---
+    match /follows/{followId} {
+      allow read: if true;
+      // enforce deterministic ID: "followerId_followingId"
+      allow create: if isAuthenticated() 
+                    && request.resource.data.followerId == request.auth.uid
+                    && followId == request.auth.uid + "_" + request.resource.data.followingId;
+      allow delete: if isAuthenticated() 
+                    && resource.data.followerId == request.auth.uid;
+    }
+
+    // --- REPORTS ---
+    match /reports/{reportId} {
+      // Users can only create reports. They cannot read others' reports or edit their own.
+      allow create: if isAuthenticated() && request.resource.data.reporterId == request.auth.uid;
+      allow read, update, delete: if false; 
+    }
+  }
+}

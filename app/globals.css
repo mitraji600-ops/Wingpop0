@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .mesh-bg {
+    background-color: #030712;
+    background-image: radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+                      radial-gradient(at 50% 0%, hsla(225,39%,30%,0.2) 0, transparent 50%), 
+                      radial-gradient(at 100% 0%, hsla(339,49%,30%,0.2) 0, transparent 50%);
+  }
+
+  .mesh-bg-light {
+    background-color: #f8fafc;
+    background-image: radial-gradient(at 0% 0%, hsla(253,16%,95%,1) 0, transparent 50%), 
+                      radial-gradient(at 50% 0%, hsla(225,39%,80%,0.1) 0, transparent 50%), 
+                      radial-gradient(at 100% 0%, hsla(339,49%,80%,0.1) 0, transparent 50%);
+  }
+
+  .glass-card {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .glass-card-light {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  .glass-nav {
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(20px);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .glass-nav-light {
+    background: rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(20px);
+    border-right: 1px solid rgba(0, 0, 0, 0.05);
+  }
+}
