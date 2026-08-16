@@ -7,6 +7,9 @@ import { addComment, addNotification } from "@/lib/social"
 import { MoreHorizontal, Flag } from "lucide-react"
 import { ReportModal } from "./report-modal"
 import { formatDistanceToNow } from "date-fns"
+import { User } from "firebase/auth"
+import { UserProfile } from "./auth-provider"
+import { CommentItemData } from "./post-card"
 
 export function Comments({ 
   targetId, 
@@ -17,15 +20,15 @@ export function Comments({
   targetId: string, 
   targetType: "posts" | "reels", 
   authorId: string, 
-  currentUser: any 
+  currentUser: User | null
 }) {
-  const [comments, setComments] = React.useState<any[]>([])
+  const [comments, setComments] = React.useState<CommentItemData[]>([])
   const [commentText, setCommentText] = React.useState("")
 
   React.useEffect(() => {
     const q = query(collection(db, targetType, targetId, "comments"), orderBy("createdAt", "desc"), limit(50))
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      setComments(snapshot.docs.map(d => ({ id: d.id, ...d.data() })))
+      setComments(snapshot.docs.map(d => ({ id: d.id, ...d.data() }) as CommentItemData))
     })
     return () => unsubscribe()
   }, [targetId, targetType])
@@ -71,14 +74,14 @@ export function Comments({
   )
 }
 
-function CommentItem({ comment, currentUser }: { comment: any, currentUser: any }) {
-  const [author, setAuthor] = React.useState<any>(null)
+function CommentItem({ comment, currentUser }: { comment: CommentItemData, currentUser: User | null }) {
+  const [author, setAuthor] = React.useState<UserProfile | null>(null)
   const [showMenu, setShowMenu] = React.useState(false)
   const [showReport, setShowReport] = React.useState(false)
 
   React.useEffect(() => {
     getDoc(doc(db, "users", comment.authorId)).then(snap => {
-      if (snap.exists()) setAuthor(snap.data())
+      if (snap.exists()) setAuthor(snap.data() as UserProfile)
     })
   }, [comment.authorId])
 

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { imagekit } from "@/lib/imagekit";
-import * as admin from "firebase-admin";
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
 
 export async function DELETE(req: NextRequest) {
@@ -55,12 +54,12 @@ export async function DELETE(req: NextRequest) {
       if (data?.imageKitFileId) fileIdsToDelete.push(data.imageKitFileId);
     } else if (targetType === "post") {
       const mediaSnap = await targetRef.collection("media").get();
-      mediaSnap.docs.forEach((mediaDoc: any) => {
+      mediaSnap.docs.forEach((mediaDoc) => {
         const mediaData = mediaDoc.data();
         if (mediaData.imageKitFileId) {
           fileIdsToDelete.push(mediaData.imageKitFileId);
         }
-        batch.delete(mediaDoc.ref); // Delete subcollection doc
+        batch.delete(mediaDoc.ref);
       });
     }
 
@@ -90,7 +89,7 @@ export async function DELETE(req: NextRequest) {
     await Promise.all(deletePromises);
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Deletion error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

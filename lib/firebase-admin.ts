@@ -1,3 +1,4 @@
+import 'server-only';
 import { getApps, initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
@@ -18,8 +19,9 @@ if (!getApps().length) {
     } else {
       initializeApp();
     }
-  } catch (error: any) {
-    console.error('Firebase Admin init error:', error.stack);
+  } catch (error: unknown) {
+    const err = error as { stack?: string };
+    console.error('Firebase Admin init error:', err.stack);
   }
 }
 

@@ -27,10 +27,21 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Verify file with ImageKit
-    const fileDetails = await new Promise<any>((resolve, reject) => {
+    interface ImageKitVideoDetails {
+      fileId: string;
+      filePath: string;
+      url: string;
+      thumbnailUrl?: string;
+      fileType: string;
+      mimeType?: string;
+      duration?: number;
+      customMetadata?: Record<string, unknown>;
+    }
+
+    const fileDetails = await new Promise<ImageKitVideoDetails>((resolve, reject) => {
       imagekit.getFileDetails(imageKitFileId, (error, result) => {
         if (error) reject(error);
-        else resolve(result);
+        else resolve(result as ImageKitVideoDetails);
       });
     });
 
@@ -38,18 +49,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "File not found in ImageKit" }, { status: 404 });
     }
 
-    // 2. Validate it's a video
+    // 2. Validate upload path namespace
+    const expectedFolderPrefix = `/users/${uid}/`;
+    if (!fileDetails.filePath.startsWith(expectedFolderPrefix)) {
+      await new Promise((resolve) => imagekit.deleteFile(imageKitFileId, resolve));
+      return NextResponse.json({ error: "Unauthorized file upload location." }, { status: 403 });
+    }
+
+    // 3. Validate video type and mime
     if (fileDetails.fileType !== "video") {
-      // Cleanup invalid file
       await new Promise((resolve) => imagekit.deleteFile(imageKitFileId, resolve));
       return NextResponse.json({ error: "Uploaded file is not a video" }, { status: 400 });
     }
 
-    // 3. Verify duration
-    const duration = fileDetails.customMetadata?.duration || fileDetails.duration || 0;
+    if (fileDetails.mimeType && !fileDetails.mimeType.startsWith("video/")) {
+      await new Promise((resolve) => imagekit.deleteFile(imageKitFileId, resolve));
+      return NextResponse.json({ error: "Invalid video MIME type" }, { status: 400 });
+    }
+
+    // 4. Verify duration <= 60s
+    const customDuration = typeof fileDetails.customMetadata?.duration === "number" ? fileDetails.customMetadata.duration : undefined;
+    const duration = customDuration ?? fileDetails.duration ?? 0;
     
     if (duration > 60) {
-      // Clean up the overly long video
       await new Promise((resolve) => imagekit.deleteFile(imageKitFileId, resolve));
       return NextResponse.json({ error: "Video exceeds 60 seconds limit" }, { status: 400 });
     }
@@ -71,7 +93,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, reelId: reelRef.id });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Reel creation error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

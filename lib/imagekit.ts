@@ -1,3 +1,4 @@
+import "server-only";
 import ImageKit from "imagekit";
 
 export const imagekit = new ImageKit({

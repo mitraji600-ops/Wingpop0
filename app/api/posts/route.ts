@@ -39,15 +39,45 @@ export async function POST(req: NextRequest) {
       if (!imageKitFileId) continue;
 
       try {
-        const fileDetails = await new Promise<any>((resolve, reject) => {
+        interface ImageKitFileDetails {
+          fileId: string;
+          name: string;
+          filePath: string;
+          url: string;
+          thumbnailUrl?: string;
+          fileType: string;
+          mimeType?: string;
+          width?: number;
+          height?: number;
+          size?: number;
+        }
+
+        const fileDetails = await new Promise<ImageKitFileDetails>((resolve, reject) => {
           imagekit.getFileDetails(imageKitFileId, (error, result) => {
             if (error) reject(error);
-            else resolve(result);
+            else resolve(result as ImageKitFileDetails);
           });
         });
 
         if (fileDetails) {
-          if (fileDetails.fileType !== "image") { await new Promise((resolve) => imagekit.deleteFile(imageKitFileId, resolve)); return NextResponse.json({ error: "Posts only support images." }, { status: 400 }); } const mime = fileDetails.mimeType || "image/jpeg";
+          // Verify file belongs to user's folder namespace
+          const expectedFolderPrefix = `/users/${uid}/`;
+          if (!fileDetails.filePath.startsWith(expectedFolderPrefix)) {
+            await new Promise((resolve) => imagekit.deleteFile(imageKitFileId, resolve));
+            return NextResponse.json({ error: "Unauthorized file upload location." }, { status: 403 });
+          }
+
+          if (fileDetails.fileType !== "image") {
+            await new Promise((resolve) => imagekit.deleteFile(imageKitFileId, resolve));
+            return NextResponse.json({ error: "Posts only support images." }, { status: 400 });
+          }
+
+          const mime = fileDetails.mimeType || "image/jpeg";
+          if (!mime.startsWith("image/")) {
+            await new Promise((resolve) => imagekit.deleteFile(imageKitFileId, resolve));
+            return NextResponse.json({ error: "Invalid image MIME type." }, { status: 400 });
+          }
+
           if (i === 0) {
             firstMediaUrl = fileDetails.url;
             firstMediaType = fileDetails.fileType;
@@ -58,7 +88,7 @@ export async function POST(req: NextRequest) {
             imageKitFileId: fileDetails.fileId,
             imageKitPath: fileDetails.filePath,
             url: fileDetails.url,
-            thumbnailUrl: fileDetails.thumbnailUrl,
+            thumbnailUrl: fileDetails.thumbnailUrl || "",
             mimeType: mime,
             width: fileDetails.width || 0,
             height: fileDetails.height || 0,
@@ -92,7 +122,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, postId: postRef.id });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Post creation error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

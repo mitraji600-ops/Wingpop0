@@ -23,10 +23,11 @@ export default function ForgotPasswordPage() {
     try {
       await sendPasswordResetEmail(auth, email)
       setSuccess(true)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err)
+      const firebaseError = err as { code?: string };
       let message = "An error occurred. Please try again."
-      if (err.code === "auth/user-not-found" || err.code === "auth/invalid-email") {
+      if (firebaseError.code === "auth/user-not-found" || firebaseError.code === "auth/invalid-email") {
          // Security best practice: don't reveal if email exists. Just show success.
          setSuccess(true)
          setIsLoading(false)

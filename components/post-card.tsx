@@ -14,6 +14,34 @@ import { Image as IKImage, Video as IKVideo } from "@imagekit/next"
 import { formatDistanceToNow } from "date-fns"
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { User } from "firebase/auth"
+import { UserProfile } from "./auth-provider"
+import { Timestamp } from "firebase/firestore"
+
+export interface PostItem {
+  id: string
+  authorId: string
+  caption?: string
+  url?: string
+  videoUrl?: string
+  fileType?: string
+  duration?: number
+  mediaCount?: number
+  createdAt?: Timestamp
+}
+
+export interface MediaItem {
+  url: string
+  mimeType?: string
+  imageKitFileId?: string
+}
+
+export interface CommentItemData {
+  id: string
+  authorId: string
+  content: string
+  createdAt?: Timestamp
+}
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -21,9 +49,9 @@ export function cn(...inputs: ClassValue[]) {
 
 const urlEndpoint = process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT || ""
 
-export function PostCard({ post, currentUser }: { post: any, currentUser: any }) {
-  const [author, setAuthor] = React.useState<any>(null)
-  const [media, setMedia] = React.useState<any[]>([])
+export function PostCard({ post, currentUser }: { post: PostItem, currentUser: User | null }) {
+  const [author, setAuthor] = React.useState<UserProfile | null>(null)
+  const [media, setMedia] = React.useState<MediaItem[]>([])
   const [currentIndex, setCurrentIndex] = React.useState(0)
   
   const [liked, setLiked] = React.useState(false)
@@ -31,7 +59,7 @@ export function PostCard({ post, currentUser }: { post: any, currentUser: any })
   const [saved, setSaved] = React.useState(false)
   
   const [showComments, setShowComments] = React.useState(false)
-  const [comments, setComments] = React.useState<any[]>([])
+  const [comments, setComments] = React.useState<CommentItemData[]>([])
   const [commentText, setCommentText] = React.useState("")
   
   const [showMenu, setShowMenu] = React.useState(false)
@@ -46,17 +74,17 @@ export function PostCard({ post, currentUser }: { post: any, currentUser: any })
   React.useEffect(() => {
     const fetchAuthor = async () => {
       const authorSnap = await getDoc(doc(db, "users", post.authorId))
-      if (authorSnap.exists()) setAuthor(authorSnap.data())
+      if (authorSnap.exists()) setAuthor(authorSnap.data() as UserProfile)
     }
     fetchAuthor()
   }, [post.authorId])
 
   // Fetch media if it's a multi-image post
   React.useEffect(() => {
-    if (isPost && post.mediaCount > 1) {
+    if (isPost && post.mediaCount && post.mediaCount > 1) {
       const fetchMedia = async () => {
         const mediaSnap = await getDocs(query(collection(db, "posts", post.id, "media"), orderBy("order", "asc")))
-        setMedia(mediaSnap.docs.map(d => d.data()))
+        setMedia(mediaSnap.docs.map(d => d.data() as MediaItem))
       }
       fetchMedia()
     }
@@ -97,7 +125,7 @@ export function PostCard({ post, currentUser }: { post: any, currentUser: any })
     if (!showComments) return
     const q = query(collection(db, targetType, post.id, "comments"), orderBy("createdAt", "desc"))
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      setComments(snapshot.docs.map(d => ({ id: d.id, ...d.data() })))
+      setComments(snapshot.docs.map(d => ({ id: d.id, ...d.data() }) as CommentItemData))
     })
     return () => unsubscribe()
   }, [post.id, showComments, targetType])
@@ -129,6 +157,7 @@ export function PostCard({ post, currentUser }: { post: any, currentUser: any })
   }
 
   const handleDelete = async () => {
+    if (!currentUser) return alert("Please sign in")
     if (!confirm("Are you sure you want to delete this?")) return
     try {
       const token = await currentUser.getIdToken()
@@ -215,14 +244,14 @@ export function PostCard({ post, currentUser }: { post: any, currentUser: any })
           currentMedia.mimeType?.startsWith("video") ? (
             <IKVideo 
               urlEndpoint={urlEndpoint} 
-              src={currentMedia.url} 
+              src={currentMedia.url || ""}
               controls 
               className="w-full h-full object-contain" 
             />
           ) : (
             <IKImage 
               urlEndpoint={urlEndpoint} 
-              src={currentMedia.url} 
+              src={currentMedia.url || ""}
               transformation={[{ width: "800" }]} 
               className="w-full h-full object-cover" 
               alt="Post content"
@@ -319,7 +348,7 @@ export function PostCard({ post, currentUser }: { post: any, currentUser: any })
               {currentMedia.mimeType?.startsWith("video") ? (
                 <IKVideo 
                   urlEndpoint={urlEndpoint} 
-                  src={currentMedia.url} 
+                  src={currentMedia.url || ""}
                   controls 
                   className="max-w-full max-h-full object-contain rounded-lg" 
                   onClick={(e: React.MouseEvent) => e.stopPropagation()}
@@ -327,7 +356,7 @@ export function PostCard({ post, currentUser }: { post: any, currentUser: any })
               ) : (
                 <IKImage 
                   urlEndpoint={urlEndpoint} 
-                  src={currentMedia.url} 
+                  src={currentMedia.url || ""}
                   transformation={[{ width: "1600" }]} 
                   className="max-w-full max-h-full object-contain rounded-lg" 
                   alt="Post content"
