@@ -3,6 +3,8 @@ import { imagekit } from "@/lib/imagekit";
 import { FieldValue } from "firebase-admin/firestore";
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
   try {
     const authHeader = req.headers.get("Authorization");

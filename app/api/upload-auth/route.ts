@@ -2,6 +2,8 @@ import { getUploadAuthParams } from "@imagekit/next/server"
 import { NextRequest, NextResponse } from "next/server"
 import { adminAuth } from "@/lib/firebase-admin";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
     try {
         const authHeader = req.headers.get("Authorization");
