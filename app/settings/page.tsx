@@ -52,10 +52,11 @@ export default function SettingsPage() {
       
       // Redirect handled by AuthProvider/effect automatically
       router.push("/")
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error)
+      const err = error as { code?: string };
       // Usually "auth/requires-recent-login"
-      if (error.code === "auth/requires-recent-login") {
+      if (err.code === "auth/requires-recent-login") {
         alert("For security reasons, please sign out and sign in again before deleting your account.")
       } else {
         alert("Failed to delete account. Please try again.")

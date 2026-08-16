@@ -9,14 +9,14 @@ import { signOut } from "firebase/auth"
 import { collection, query, orderBy, onSnapshot, limit } from "firebase/firestore"
 import { ImagePlus, Video as VideoIcon, Loader2, LogOut, Compass, User, Settings } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
-import { PostCard } from "@/components/post-card"
+import { PostCard, PostItem } from "@/components/post-card"
 import Link from "next/link"
 
 export default function FeedPage() {
   const { user, profile, loading } = useAuth()
   const router = useRouter()
   
-  const [posts, setPosts] = React.useState<any[]>([])
+  const [posts, setPosts] = React.useState<PostItem[]>([])
   
   // Upload State
   const [uploading, setUploading] = React.useState(false)
@@ -42,7 +42,7 @@ export default function FeedPage() {
       const fetchedPosts = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
-      }))
+      }) as PostItem)
       setPosts(fetchedPosts)
     })
     return () => unsubscribe()
@@ -93,8 +93,9 @@ export default function FeedPage() {
         const uploadResponse = await upload({
           file,
           fileName: file.name,
+          folder: authParams.folder,
           ...authParams,
-          onUploadProgress: (e: any) => {
+          onUploadProgress: (e: { loaded: number; total: number }) => {
             setProgress(Math.round(((e.loaded / e.total) + i) / files.length * 100))
           },
           abortSignal: abortController.current.signal,
@@ -145,9 +146,10 @@ export default function FeedPage() {
       setFiles([])
       setCaption("")
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Upload error:", error)
-      alert(error.message || "Failed to upload")
+      const message = error instanceof Error ? error.message : "Failed to upload"
+      alert(message)
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ""

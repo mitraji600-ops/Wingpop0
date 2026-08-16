@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { imagekit } from "@/lib/imagekit";
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
 
+export const dynamic = 'force-dynamic';
+
 export async function DELETE(req: NextRequest) {
   try {
     const authHeader = req.headers.get("Authorization");
@@ -19,10 +21,10 @@ export async function DELETE(req: NextRequest) {
 
     const uid = decodedToken.uid;
     
-    let batches = [adminDb.batch()];
+    const batches: FirebaseFirestore.WriteBatch[] = [adminDb.batch()];
     let operationCount = 0;
     
-    function addDeleteOperation(ref: any) {
+    function addDeleteOperation(ref: FirebaseFirestore.DocumentReference) {
         if (operationCount === 499) {
             batches.push(adminDb.batch());
             operationCount = 0;
@@ -79,7 +81,28 @@ export async function DELETE(req: NextRequest) {
         await batch.commit();
     }
 
-    // 5. Delete ImageKit files
+    // 5. Delete user notifications subcollection
+    const notifsSnap = await adminDb.collection("users").doc(uid).collection("notifications").get();
+    for (const notifDoc of notifsSnap.docs) {
+      addDeleteOperation(notifDoc.ref);
+    }
+
+    // 6. Delete user saved posts & reels subcollections
+    const savedPostsSnap = await adminDb.collection("users").doc(uid).collection("saved_posts").get();
+    for (const doc of savedPostsSnap.docs) {
+      addDeleteOperation(doc.ref);
+    }
+    const savedReelsSnap = await adminDb.collection("users").doc(uid).collection("saved_reels").get();
+    for (const doc of savedReelsSnap.docs) {
+      addDeleteOperation(doc.ref);
+    }
+
+    // Commit all batches
+    for (const batch of batches) {
+        await batch.commit();
+    }
+
+    // 7. Delete ImageKit files
     const deletePromises = fileIdsToDelete.map(
       (fileId) =>
         new Promise<void>((resolve) => {
@@ -92,7 +115,7 @@ export async function DELETE(req: NextRequest) {
     await Promise.all(deletePromises);
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("User deletion error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

@@ -2,6 +2,8 @@ import { getUploadAuthParams } from "@imagekit/next/server"
 import { NextRequest, NextResponse } from "next/server"
 import { adminAuth } from "@/lib/firebase-admin";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
     try {
         const authHeader = req.headers.get("Authorization");
@@ -22,14 +24,18 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: "ImageKit keys are not configured." }, { status: 500 });
         }
 
+        const decodedToken = await adminAuth.verifyIdToken(token);
+        const folder = `/users/${decodedToken.uid}`;
+
         const { token: ikToken, expire, signature } = getUploadAuthParams({
             privateKey,
             publicKey,
             expire: 30 * 60, // 30 minutes
         })
 
-        return NextResponse.json({ token: ikToken, expire, signature, publicKey })
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ token: ikToken, expire, signature, publicKey, folder })
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Internal server error";
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }

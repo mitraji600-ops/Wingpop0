@@ -9,18 +9,17 @@ import { Compass, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { Image as IKImage, Video as IKVideo } from "@imagekit/next"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { PostItem } from "@/components/post-card"
 
 export default function ExplorePage() {
-  const [posts, setPosts] = React.useState<any[]>([])
+  const [posts, setPosts] = React.useState<PostItem[]>([])
   const [loading, setLoading] = React.useState(true)
 
   React.useEffect(() => {
     const fetchExplore = async () => {
-      // In a real app, this would be a more complex query (e.g., trending, recommended)
-      // For now, we fetch recent posts
       const q = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(30))
       const snap = await getDocs(q)
-      setPosts(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+      setPosts(snap.docs.map(d => ({ id: d.id, ...d.data() }) as PostItem))
       setLoading(false)
     }
     fetchExplore()
@@ -55,7 +54,7 @@ export default function ExplorePage() {
                 <div className="w-full h-full relative">
                    <IKVideo
                     urlEndpoint={process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT || ""}
-                    src={post.url}
+                    src={post.url || post.videoUrl || ""}
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute top-2 right-2 p-1 bg-black/50 rounded text-white text-xs font-bold">
@@ -65,7 +64,7 @@ export default function ExplorePage() {
               ) : (
                 <IKImage
                   urlEndpoint={process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT || ""}
-                  src={post.url}
+                  src={post.url || ""}
                   transformation={[{ width: "400", height: "400", cropMode: "extract" }]}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   alt=""

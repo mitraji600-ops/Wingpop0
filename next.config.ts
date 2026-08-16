@@ -8,14 +8,21 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
-  // Allow access to remote image placeholder.
+  serverExternalPackages: ['firebase-admin', 'imagekit'],
+  // Allow access to remote image placeholder and ImageKit endpoint.
   images: {
     remotePatterns: [
       {
         protocol: 'https',
         hostname: 'picsum.photos',
         port: '',
-        pathname: '/**', // This allows any path under the hostname
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'ik.imagekit.io',
+        port: '',
+        pathname: '/**',
       },
     ],
   },

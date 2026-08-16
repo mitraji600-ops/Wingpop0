@@ -3,11 +3,22 @@
 import * as React from "react"
 import { auth, db } from "@/lib/firebase"
 import { onAuthStateChanged, User } from "firebase/auth"
-import { doc, onSnapshot } from "firebase/firestore"
+import { doc, onSnapshot, Timestamp } from "firebase/firestore"
+
+export interface UserProfile {
+  uid: string;
+  displayName: string;
+  username: string;
+  photoURL?: string;
+  theme?: string;
+  bio?: string;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+}
 
 interface AuthContextType {
   user: User | null;
-  profile: any | null;
+  profile: UserProfile | null;
   loading: boolean;
 }
 
@@ -15,7 +26,7 @@ const AuthContext = React.createContext<AuthContextType>({ user: null, profile: 
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = React.useState<User | null>(null);
-  const [profile, setProfile] = React.useState<any | null>(null);
+  const [profile, setProfile] = React.useState<UserProfile | null>(null);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
@@ -26,7 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (firebaseUser) {
         unsubscribeProfile = onSnapshot(doc(db, "users", firebaseUser.uid), (doc) => {
           if (doc.exists()) {
-            setProfile(doc.data());
+            setProfile(doc.data() as UserProfile);
           } else {
             setProfile(null);
           }

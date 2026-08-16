@@ -3,5 +3,15 @@ node_modules/
 coverage/
 .DS_Store
 *.log
+.vercel/
+tsconfig.tsbuildinfo
 .env*
 !.env.example
+
+# OpenNext
+.open-next
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example

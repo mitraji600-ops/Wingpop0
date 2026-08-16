@@ -1,8 +1,12 @@
+import 'server-only';
 import { getApps, initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 
-if (!getApps().length) {
+function getAdminApp() {
+  if (getApps().length > 0) {
+    return getApps()[0];
+  }
   try {
     const serviceAccount = {
       projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
@@ -10,18 +14,34 @@ if (!getApps().length) {
       privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
     };
     
-    // Only init if we actually have credentials, otherwise we might rely on default ADC
     if (serviceAccount.projectId && serviceAccount.privateKey) {
-      initializeApp({
+      return initializeApp({
         credential: cert(serviceAccount),
       });
     } else {
-      initializeApp();
+      return initializeApp();
     }
-  } catch (error: any) {
-    console.error('Firebase Admin init error:', error.stack);
+  } catch (error: unknown) {
+    const err = error as { stack?: string };
+    console.error('Firebase Admin init error:', err.stack);
+    return initializeApp();
   }
 }
 
-export const adminDb = getFirestore();
-export const adminAuth = getAuth();
+export const adminDb = new Proxy({} as ReturnType<typeof getFirestore>, {
+  get(_target, prop: keyof ReturnType<typeof getFirestore>) {
+    const app = getAdminApp();
+    const db = getFirestore(app);
+    const value = db[prop];
+    return typeof value === 'function' ? value.bind(db) : value;
+  },
+});
+
+export const adminAuth = new Proxy({} as ReturnType<typeof getAuth>, {
+  get(_target, prop: keyof ReturnType<typeof getAuth>) {
+    const app = getAdminApp();
+    const auth = getAuth(app);
+    const value = auth[prop];
+    return typeof value === 'function' ? value.bind(auth) : value;
+  },
+});

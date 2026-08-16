@@ -53,7 +53,7 @@ export default function SignupPage() {
       }
       
       router.push("/feed")
-    } catch (err: any) {
+    } catch {
       setError("Failed to sign in with Google. Please try again.")
       setIsLoading(false)
     }
@@ -106,12 +106,13 @@ export default function SignupPage() {
           setError("Failed to secure username. Please try another one.")
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err)
+      const firebaseError = err as { code?: string };
       let message = "An error occurred. Please try again."
-      if (err.code === "auth/email-already-in-use") message = "This email is already registered."
-      if (err.code === "auth/wrong-password" || err.code === "auth/user-not-found" || err.code === "auth/invalid-credential") message = "Invalid email or password."
-      if (err.code === "auth/weak-password") message = "Password should be at least 6 characters."
+      if (firebaseError.code === "auth/email-already-in-use") message = "This email is already registered."
+      if (firebaseError.code === "auth/wrong-password" || firebaseError.code === "auth/user-not-found" || firebaseError.code === "auth/invalid-credential") message = "Invalid email or password."
+      if (firebaseError.code === "auth/weak-password") message = "Password should be at least 6 characters."
       setError(message)
     } finally {
       setIsLoading(false)
